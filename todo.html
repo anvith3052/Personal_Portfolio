@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="image.png">
+    <title>Todo List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 0;
+            margin: 0;
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .todo-container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px; /* Adjust as needed */
+            text-align: center;
+            z-index: 1;
+        }
+
+        .todo-grid,
+        .todo-input-grid {
+            display: grid;
+            grid-template-columns: 200px 150px 100px;
+            justify-content: space-evenly;
+            column-gap: 10px;
+            row-gap: 10px;
+            align-items: center;
+        }
+
+        .todo-input-grid {
+            margin-bottom: 20px;
+            align-items: stretch;
+        }
+
+        .name-input,
+        .due-date-input {
+            font-size: 15px;
+            padding: 6px;
+        }
+
+        .add-todo-button,
+        .clear-completed-button {
+            background-color: green;
+            color: white;
+            border: none;
+            font-size: 15px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+
+        .delete-todo-button {
+            background-color: darkred;
+            color: white;
+            border: none;
+            font-size: 15px;
+            cursor: pointer;
+            padding-top: 6px;
+            padding-bottom: 6px;
+            border-radius: 4px;
+        }
+
+        .filter-buttons {
+            margin-bottom: 20px;
+        }
+
+        .filter-button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            font-size: 15px;
+            cursor: pointer;
+            padding: 8px;
+            margin-right: 10px;
+            border-radius: 4px;
+        }
+
+        .filter-button.active {
+            background-color: #2980b9;
+        }
+
+        .full-screen-image {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 2;
+        }
+
+        .full-screen-image.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="todo-container js-todo-container">
+        <p>Todo List</p>
+
+        <div class="todo-input-grid">
+            <input placeholder="Todo name" class="js-name-input name-input">
+            <!-- Updated date input to restrict past dates -->
+            <input type="date" class="js-due-date-input due-date-input" id="due-date-input">
+            <button onclick="addTodo()" class="add-todo-button">Add</button>
+        </div>
+
+        <div class="filter-buttons">
+            <button onclick="filterTodos('all')" class="filter-button all-filter active">All</button>
+            <button onclick="filterTodos('active')" class="filter-button active-filter">Active</button>
+            <button onclick="filterTodos('completed')" class="filter-button completed-filter">Completed</button>
+        </div>
+
+        <div class="js-todo-list todo-grid"></div>
+
+        <button onclick="clearCompleted()" class="clear-completed-button">Clear Completed Tasks</button>
+    </div>
+
+    <script>
+        let todoList = [];
+        let currentFilter = 'all';
+
+        // Set the minimum date to today for the date input field
+        document.getElementById('due-date-input').setAttribute('min', new Date().toISOString().split('T')[0]);
+
+        function renderTodoList() {
+            let filteredTodos = todoList;
+
+            if (currentFilter === 'active') {
+                filteredTodos = todoList.filter(todo => !todo.completed);
+            } else if (currentFilter === 'completed') {
+                filteredTodos = todoList.filter(todo => todo.completed);
+            }
+
+            filteredTodos.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+            let todoListHTML = '';
+
+            for (let i = 0; i < filteredTodos.length; i++) {
+                const { name, dueDate, completed } = filteredTodos[i];
+                const checked = completed ? 'checked' : '';
+                const html = `
+                    <div>
+                        <input type="checkbox" onclick="toggleComplete(${i})" ${checked}>
+                        <span style="${completed ? 'text-decoration: line-through;' : ''}">${name}</span>
+                    </div>
+                    <div>${dueDate}</div>
+                    <button onclick="deleteTodo(${i})" class="delete-todo-button">Delete</button>
+                `;
+                todoListHTML += html;
+            }
+
+            const todoListContainer = document.querySelector('.js-todo-list');
+            todoListContainer.innerHTML = todoListHTML;
+
+            // Display appropriate background image based on task completion
+            const allCompleted = todoList.length > 0 && todoList.every(todo => todo.completed);
+            if (allCompleted) {
+                document.body.style.backgroundImage = "url('completed3.png')";
+            } else {
+                document.body.style.backgroundImage = "url('todo.png')";
+            }
+        }
+
+        function addTodo() {
+            const name = document.querySelector('.js-name-input').value;
+            const dueDate = document.querySelector('.js-due-date-input').value;
+
+            if (name && dueDate) {
+                todoList.push({ name, dueDate, completed: false });
+                document.querySelector('.js-name-input').value = '';
+                document.querySelector('.js-due-date-input').value = '';
+                renderTodoList();
+            }
+        }
+
+        function deleteTodo(index) {
+            todoList.splice(index, 1);
+            renderTodoList();
+        }
+
+        function toggleComplete(index) {
+            todoList[index].completed = !todoList[index].completed;
+            renderTodoList();
+        }
+
+        function clearCompleted() {
+            todoList = todoList.filter(todo => !todo.completed);
+            renderTodoList();
+        }
+
+        function filterTodos(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            document.querySelector(`.filter-button.${filter}-filter`).classList.add('active');
+            renderTodoList();
+        }
+
+        renderTodoList();
+    </script>
+</body>
+</html>
